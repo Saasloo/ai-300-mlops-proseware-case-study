@@ -25,11 +25,13 @@ az deployment sub create \
 
 ## Smoke tests
 
-After deploying, `infra/smoke-tests/` has scripts that round-trip a test blob/secret through the deployed resources to confirm access works end-to-end:
+After deploying, `infra/smoke-tests/` has scripts that confirm access to the deployed resources works end-to-end:
 
 ```
 infra/smoke-tests/smoke-test-storage.sh
 infra/smoke-tests/smoke-test-keyvault.sh
+infra/smoke-tests/smoke-test-loganalytics.sh
+infra/smoke-tests/smoke-test-appinsights.sh
 ```
 
-Both read the resource group from `$RESOURCE_GROUP` (defaults to `rg-proseware-dev`) and clean up after themselves.
+All read the resource group from `$RESOURCE_GROUP` (defaults to `rg-proseware-dev`) and clean up after themselves. The Log Analytics one is read-only (no diagnostic settings are wired up yet), so it just confirms the workspace exists and its query endpoint responds. The Application Insights one is also read-only — it confirms the resource is provisioned and linked to the Log Analytics workspace.

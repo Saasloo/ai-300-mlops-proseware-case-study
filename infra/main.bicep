@@ -30,3 +30,20 @@ module keyVault 'keyvault.bicep' = {
     secretsOfficerPrincipalId: secretsOfficerPrincipalId
   }
 }
+
+module logAnalytics 'loganalytics.bicep' = {
+  name: 'logAnalyticsDeployment'
+  scope: rg
+  params: {
+    location: location
+  }
+}
+
+module appInsights 'appinsights.bicep' = {
+  name: 'appInsightsDeployment'
+  scope: rg
+  params: {
+    location: location
+    logAnalyticsWorkspaceId: logAnalytics.outputs.logAnalyticsWorkspaceId
+  }
+}
