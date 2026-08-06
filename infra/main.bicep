@@ -6,6 +6,9 @@ param resourceGroupName string = 'rg-proseware-dev'
 @description('Azure region for the resource group.')
 param location string = 'eastus2'
 
+@description('Object ID of the user/service principal to grant Key Vault secret get/set access. Obtain via `az ad signed-in-user show --query id -o tsv`.')
+param secretsOfficerPrincipalId string
+
 resource rg 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
   location: location
@@ -24,5 +27,6 @@ module keyVault 'keyvault.bicep' = {
   scope: rg
   params: {
     location: location
+    secretsOfficerPrincipalId: secretsOfficerPrincipalId
   }
 }

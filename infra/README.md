@@ -13,3 +13,23 @@ Prerequisites:
 - `az login` completed (step 1 above)
 
 Claude Code will pick up the server automatically when you open this project (you may be prompted to approve it on first use).
+
+## Deploying
+
+```
+az deployment sub create \
+  --location eastus2 \
+  --template-file infra/main.bicep \
+  --parameters secretsOfficerPrincipalId=$(az ad signed-in-user show --query id -o tsv)
+```
+
+## Smoke tests
+
+After deploying, `infra/smoke-tests/` has scripts that round-trip a test blob/secret through the deployed resources to confirm access works end-to-end:
+
+```
+infra/smoke-tests/smoke-test-storage.sh
+infra/smoke-tests/smoke-test-keyvault.sh
+```
+
+Both read the resource group from `$RESOURCE_GROUP` (defaults to `rg-proseware-dev`) and clean up after themselves.
