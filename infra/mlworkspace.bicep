@@ -16,7 +16,20 @@ param appInsightsId string
 @description('Name of the container registry this workspace uses for custom training/scoring environment images.')
 param containerRegistryName string
 
+@description('Base name used to derive the compute instance name.')
+param computeInstanceBaseName string = 'ci-proseware-dev'
+
+@description('VM size for the compute instance. Defaults to the cheapest size generally available for notebook development.')
+param computeInstanceVmSize string = 'Standard_DS1_v2'
+
+@description('ISO8601 duration of inactivity after which the compute instance auto-shuts-down. Minimum PT15M, maximum P3D.')
+param computeInstanceIdleShutdown string = 'PT30M'
+
+@description('AAD object ID of the user assigned as the personal owner of the compute instance (typically the signed-in developer).')
+param computeInstanceOwnerObjectId string
+
 var workspaceName = take('${workspaceBaseName}-${uniqueString(resourceGroup().id)}', 32)
+var computeInstanceName = take('${computeInstanceBaseName}-${uniqueString(resourceGroup().id)}', 24)
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
   name: storageAccountName
@@ -82,6 +95,31 @@ resource acrRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' 
   }
 }
 
+@description('Personal notebook compute instance for interactive development. Billed hourly while running regardless of usage - stop it when not in use.')
+resource computeInstance 'Microsoft.MachineLearningServices/workspaces/computes@2025-06-01' = {
+  parent: mlWorkspace
+  name: computeInstanceName
+  location: location
+  properties: {
+    computeType: 'ComputeInstance'
+    properties: {
+      vmSize: computeInstanceVmSize
+      applicationSharingPolicy: 'Personal'
+      idleTimeBeforeShutdown: computeInstanceIdleShutdown
+      sshSettings: {
+        sshPublicAccess: 'Disabled'
+      }
+      personalComputeInstanceSettings: {
+        assignedUser: {
+          objectId: computeInstanceOwnerObjectId
+          tenantId: tenant().tenantId
+        }
+      }
+    }
+  }
+}
+
 output mlWorkspaceName string = mlWorkspace.name
 output mlWorkspaceId string = mlWorkspace.id
 output mlWorkspacePrincipalId string = mlWorkspace.identity.principalId
+output computeInstanceName string = computeInstance.name

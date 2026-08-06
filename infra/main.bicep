@@ -65,5 +65,6 @@ module mlWorkspace 'mlworkspace.bicep' = {
     keyVaultName: keyVault.outputs.keyVaultName
     appInsightsId: appInsights.outputs.appInsightsId
     containerRegistryName: acr.outputs.acrName
+    computeInstanceOwnerObjectId: secretsOfficerPrincipalId
   }
 }
