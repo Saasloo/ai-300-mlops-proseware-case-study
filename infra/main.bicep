@@ -47,3 +47,23 @@ module appInsights 'appinsights.bicep' = {
     logAnalyticsWorkspaceId: logAnalytics.outputs.logAnalyticsWorkspaceId
   }
 }
+
+module acr 'acr.bicep' = {
+  name: 'acrDeployment'
+  scope: rg
+  params: {
+    location: location
+  }
+}
+
+module mlWorkspace 'mlworkspace.bicep' = {
+  name: 'mlWorkspaceDeployment'
+  scope: rg
+  params: {
+    location: location
+    storageAccountName: storage.outputs.storageAccountName
+    keyVaultName: keyVault.outputs.keyVaultName
+    appInsightsId: appInsights.outputs.appInsightsId
+    containerRegistryName: acr.outputs.acrName
+  }
+}

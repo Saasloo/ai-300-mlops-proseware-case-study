@@ -32,13 +32,14 @@ infra/smoke-tests/smoke-test-storage.sh
 infra/smoke-tests/smoke-test-keyvault.sh
 infra/smoke-tests/smoke-test-loganalytics.sh
 infra/smoke-tests/smoke-test-appinsights.sh
+infra/smoke-tests/smoke-test-mlworkspace.sh
 ```
 
-All read the resource group from `$RESOURCE_GROUP` (defaults to `rg-proseware-dev`) and clean up after themselves. The Log Analytics one is read-only (no diagnostic settings are wired up yet), so it just confirms the workspace exists and its query endpoint responds. The Application Insights one is also read-only — it confirms the resource is provisioned and linked to the Log Analytics workspace.
+All read the resource group from `$RESOURCE_GROUP` (defaults to `rg-proseware-dev`) and clean up after themselves. The Log Analytics one is read-only (no diagnostic settings are wired up yet), so it just confirms the workspace exists and its query endpoint responds. The Application Insights one is also read-only — it confirms the resource is provisioned and linked to the Log Analytics workspace. The ML workspace one is also read-only — it confirms the workspace is provisioned, has a system-assigned identity, is linked to the storage account/key vault/App Insights/container registry, and that the identity has role assignments on those resources.
 
 ## Tearing down (stop being charged)
 
-Everything currently deployed here (Storage Account, Key Vault, Log Analytics workspace, Application Insights) is pay-as-you-go with no always-on compute, so idle cost is low — but not zero, and it grows once compute-backed resources (e.g. the Azure ML online endpoint from ADR 0005) land. When you're done for the day, delete the whole resource group rather than trying to pause individual resources:
+Everything currently deployed here (Storage Account, Key Vault, Log Analytics workspace, Application Insights, Container Registry, Azure ML workspace) is pay-as-you-go with no always-on compute, so idle cost is low — but not zero, and it grows once compute-backed resources (e.g. the Azure ML online endpoint from ADR 0005, or an AML compute instance/cluster) land. When you're done for the day, delete the whole resource group rather than trying to pause individual resources:
 
 Key Vault names in this repo are deterministic (derived from the resource group id, see `infra/keyvault.bicep`), and Key Vault has soft-delete enabled — so deleting the resource group alone leaves the vault name reserved in a soft-deleted state for 7 days. Redeploying before then will fail with a naming conflict. Always purge it as part of teardown:
 
