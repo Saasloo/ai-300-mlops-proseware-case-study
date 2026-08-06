@@ -28,6 +28,9 @@ param computeInstanceIdleShutdown string = 'PT30M'
 @description('AAD object ID of the user assigned as the personal owner of the compute instance (typically the signed-in developer).')
 param computeInstanceOwnerObjectId string
 
+@description('Whether to deploy the compute instance. Set to false to stand up the workspace without incurring compute-instance run time.')
+param deployComputeInstance bool = true
+
 @description('Base name used to derive the training compute cluster name.')
 param computeClusterBaseName string = 'cc-proseware-dev'
 
@@ -103,7 +106,7 @@ resource acrRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' 
 }
 
 @description('Personal notebook compute instance for interactive development. Billed hourly while running regardless of usage - stop it when not in use.')
-resource computeInstance 'Microsoft.MachineLearningServices/workspaces/computes@2025-06-01' = {
+resource computeInstance 'Microsoft.MachineLearningServices/workspaces/computes@2025-06-01' = if (deployComputeInstance) {
   parent: mlWorkspace
   name: computeInstanceName
   location: location
@@ -150,5 +153,5 @@ resource computeCluster 'Microsoft.MachineLearningServices/workspaces/computes@2
 output mlWorkspaceName string = mlWorkspace.name
 output mlWorkspaceId string = mlWorkspace.id
 output mlWorkspacePrincipalId string = mlWorkspace.identity.principalId
-output computeInstanceName string = computeInstance.name
+output computeInstanceName string = deployComputeInstance ? computeInstance.name : ''
 output computeClusterName string = computeCluster.name

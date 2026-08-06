@@ -9,6 +9,9 @@ param location string = 'eastus2'
 @description('Object ID of the user/service principal to grant Key Vault secret get/set access. Obtain via `az ad signed-in-user show --query id -o tsv`.')
 param secretsOfficerPrincipalId string
 
+@description('Whether to deploy the ML workspace compute instance. Set to false to stand up the workspace without incurring compute-instance run time.')
+param deployComputeInstance bool = true
+
 resource rg 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
   location: location
@@ -66,5 +69,6 @@ module mlWorkspace 'mlworkspace.bicep' = {
     appInsightsId: appInsights.outputs.appInsightsId
     containerRegistryName: acr.outputs.acrName
     computeInstanceOwnerObjectId: secretsOfficerPrincipalId
+    deployComputeInstance: deployComputeInstance
   }
 }
