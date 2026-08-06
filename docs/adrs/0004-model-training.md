@@ -24,3 +24,9 @@ Use Azure Machine Learning as the platform for training models, using its experi
 **Bad / trade-offs:**
 - More setup and management overhead than a managed AutoML or no-code training service.
 - Team is responsible for managing compute costs, environment/dependency drift, and notebook hygiene since training is not fully abstracted away.
+
+## Open Questions
+
+**Why `Dedicated` VM priority on the training compute cluster (`infra/mlworkspace.bicep`), not `LowPriority`?**
+
+`LowPriority` (pre-emptible/spot-style pricing) is cheaper and was the initial choice, since `scaleSettings.minNodeCount: 0` already means the cluster costs nothing while idle. Deploying it failed with `ClusterMinNodesExceedCoreQuota`: the subscription's `TotalLowPriorityCores` Azure ML quota is `0/0` (a separate quota class from regular vCPU quota, unrelated to the `standardDSv2Family` quota which does have headroom). Rather than block on filing a quota increase request, the cluster uses `Dedicated` priority instead — still scales to zero nodes when idle, so cost stays low, just without the additional spot discount. Revisit if `TotalLowPriorityCores` quota is ever granted for this subscription/region.

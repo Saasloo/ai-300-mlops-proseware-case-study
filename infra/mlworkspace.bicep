@@ -28,8 +28,15 @@ param computeInstanceIdleShutdown string = 'PT30M'
 @description('AAD object ID of the user assigned as the personal owner of the compute instance (typically the signed-in developer).')
 param computeInstanceOwnerObjectId string
 
+@description('Base name used to derive the training compute cluster name.')
+param computeClusterBaseName string = 'cc-proseware-dev'
+
+@description('VM size for the training compute cluster nodes.')
+param computeClusterVmSize string = 'Standard_DS2_v2'
+
 var workspaceName = take('${workspaceBaseName}-${uniqueString(resourceGroup().id)}', 32)
 var computeInstanceName = take('${computeInstanceBaseName}-${uniqueString(resourceGroup().id)}', 24)
+var computeClusterName = take('${computeClusterBaseName}-${uniqueString(resourceGroup().id)}', 24)
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
   name: storageAccountName
@@ -119,7 +126,29 @@ resource computeInstance 'Microsoft.MachineLearningServices/workspaces/computes@
   }
 }
 
+@description('Training compute cluster. Scales to zero nodes when idle and uses low-priority (pre-emptible) pricing to minimize cost.')
+resource computeCluster 'Microsoft.MachineLearningServices/workspaces/computes@2025-06-01' = {
+  parent: mlWorkspace
+  name: computeClusterName
+  location: location
+  properties: {
+    computeType: 'AmlCompute'
+    properties: {
+      vmSize: computeClusterVmSize
+      vmPriority: 'Dedicated'
+      osType: 'Linux'
+      remoteLoginPortPublicAccess: 'Disabled'
+      scaleSettings: {
+        minNodeCount: 0
+        maxNodeCount: 2
+        nodeIdleTimeBeforeScaleDown: 'PT120S'
+      }
+    }
+  }
+}
+
 output mlWorkspaceName string = mlWorkspace.name
 output mlWorkspaceId string = mlWorkspace.id
 output mlWorkspacePrincipalId string = mlWorkspace.identity.principalId
 output computeInstanceName string = computeInstance.name
+output computeClusterName string = computeCluster.name
