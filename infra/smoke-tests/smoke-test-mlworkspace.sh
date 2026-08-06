@@ -43,10 +43,16 @@ for field in storage keyVault appInsights acr; do
   fi
 done
 
-ROLE_COUNT=$(az role assignment list --assignee "$PRINCIPAL_ID" -g "$RESOURCE_GROUP" --query "length(@)" -o tsv)
-if [[ "$ROLE_COUNT" -lt 3 ]]; then
-  echo "FAIL: expected at least 3 role assignments for the workspace identity (storage, key vault, ACR), found $ROLE_COUNT" >&2
-  exit 1
-fi
+STORAGE_ID=$(echo "$WORKSPACE_INFO" | jq -r '.storage')
+KEYVAULT_ID=$(echo "$WORKSPACE_INFO" | jq -r '.keyVault')
+ACR_ID=$(echo "$WORKSPACE_INFO" | jq -r '.acr')
+
+for resource_id in "$STORAGE_ID" "$KEYVAULT_ID" "$ACR_ID"; do
+  ROLE_COUNT=$(az role assignment list --assignee "$PRINCIPAL_ID" --scope "$resource_id" --query "length(@)" -o tsv)
+  if [[ "$ROLE_COUNT" -lt 1 ]]; then
+    echo "FAIL: workspace identity has no role assignment on $resource_id" >&2
+    exit 1
+  fi
+done
 
 echo "PASS: ML workspace is provisioned with a system-assigned identity linked to storage, key vault, App Insights, and ACR ($(basename "$WORKSPACE_ID"))"
