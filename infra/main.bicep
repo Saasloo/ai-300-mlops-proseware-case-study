@@ -18,3 +18,11 @@ module storage 'storage.bicep' = {
     location: location
   }
 }
+
+module keyVault 'keyvault.bicep' = {
+  name: 'keyVaultDeployment'
+  scope: rg
+  params: {
+    location: location
+  }
+}
