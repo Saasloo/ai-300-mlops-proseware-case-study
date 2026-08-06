@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "azure-bicep": {
+      "type": "stdio",
+      "command": "fnm",
+      "args": [
+        "exec",
+        "--using=22",
+        "npx",
+        "-y",
+        "@azure/mcp@latest",
+        "server",
+        "start"
+      ],
+      "env": {}
+    }
+  }
+}
