@@ -21,3 +21,9 @@ ai-300-mlops-proseware-case-study = "ai_300_mlops_proseware_case_study:main"
 [build-system]
 requires = ["uv_build>=0.12.2,<0.13.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "nbstripout>=0.9.1",
+    "pre-commit>=4.6.1",
+]

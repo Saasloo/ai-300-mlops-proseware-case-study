@@ -23,3 +23,9 @@ target
 
 # Local LSP tooling config
 .lsp.json
+
+# Jupyter checkpoint files
+.ipynb_checkpoints/
+
+# Azure ML workspace config (subscription/resource identifiers, environment-specific)
+config.json
