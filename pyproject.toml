@@ -1,0 +1,23 @@
+[project]
+name = "ai-300-mlops-proseware-case-study"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "luizamfsantos", email = "luiza.marques_@hotmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "azure-ai-ml>=1.34.1",
+    "azure-identity>=1.25.3",
+    "ipykernel>=7.3.0",
+    "jupyter>=1.1.1",
+    "pandas>=3.0.5",
+]
+
+[project.scripts]
+ai-300-mlops-proseware-case-study = "ai_300_mlops_proseware_case_study:main"
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"
