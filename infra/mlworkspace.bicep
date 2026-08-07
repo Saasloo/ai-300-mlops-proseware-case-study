@@ -2,7 +2,7 @@
 param location string
 
 @description('Base name used to derive the globally-unique machine learning workspace name.')
-param workspaceBaseName string = 'mlw-proseware-dev2'
+param workspaceBaseName string = 'mlw-proseware-dev'
 
 @description('Name of the storage account this workspace uses for default datastores.')
 param storageAccountName string

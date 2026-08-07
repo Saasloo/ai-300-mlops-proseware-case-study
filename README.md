@@ -11,26 +11,31 @@ Prerequisites:
 Run it locally with:
 
 ```
-uv run ingest-kaggle-dataset
+uv run ingest-kaggle-dataset --config-path experiments/config.json
 ```
 
-By default this lands `rahibvk/real-diabetes-lab-results-and-biomarkers-anti-pima` as the `diabetes-lab-results-raw` data asset. Pass `--dataset`, `--asset-name`, `--asset-version`, or `--description` to override. Re-running with unchanged source data is a no-op — the asset version defaults to a content hash of the CSV, and the script skips registration if that version already exists.
+`--config-path` is needed because `MLClient.from_config()` only searches the current directory and its parents, not subdirectories — if you're running from the repo root (rather than from `experiments/`), it won't find `config.json` on its own. By default this lands `rahibvk/real-diabetes-lab-results-and-biomarkers-anti-pima` as the `diabetes-lab-results-raw` data asset. Pass `--dataset`, `--asset-name`, `--asset-version`, or `--description` to override. Re-running with unchanged source data is a no-op — the asset version defaults to a content hash of the CSV, and the script skips registration if that version already exists.
 
 ### Running as an Azure ML job
 
-For anything beyond ad-hoc local runs, `submit-ingest-job` submits `ingest.py` as a job on the training compute cluster instead of running it on a laptop, under a dedicated managed identity (`infra/mlworkspace.bicep`) with `AzureML Data Scientist` access so it can check/register data assets on its own.
+For anything beyond ad-hoc local runs, `submit-ingest-job` submits `kaggle.py` (`src/proseware/ingestion/kaggle.py`) as a job on the training compute cluster instead of running it on a laptop, under a dedicated managed identity (`infra/mlworkspace.bicep`'s `ingestIdentity`) with `AzureML Data Scientist` access so it can check/register data assets on its own. The job environment is a Docker image (`src/proseware/ingestion/Dockerfile`) built with `uv`, not conda.
 
 Prerequisites (in addition to the ones above):
 - `infra/main.bicep` deployed with the updated `infra/mlworkspace.bicep` (adds the `ingestIdentity` managed identity + role assignment).
 - The compute cluster name and ingestion identity client ID from the deployment outputs:
   ```
-  az deployment sub show --name <deployment-name> --query "properties.outputs.{compute:computeClusterName.value, identity:ingestIdentityClientId.value}"
+  az deployment sub show --name main --query "properties.outputs.{compute:computeClusterName.value, identity:ingestIdentityClientId.value}"
   ```
 
 Run it with:
 
 ```
-uv run submit-ingest-job --compute-name <computeClusterName> --identity-client-id <ingestIdentityClientId>
+uv run submit-ingest-job \
+  --compute-name <computeClusterName> \
+  --identity-client-id <ingestIdentityClientId> \
+  --config-path experiments/config.json
 ```
 
-or export `AML_COMPUTE_NAME` / `AML_INGEST_IDENTITY_CLIENT_ID` to skip passing them each time. This has no schedule yet — it's submit-on-demand only.
+or export `AML_COMPUTE_NAME` / `AML_INGEST_IDENTITY_CLIENT_ID` to skip passing them each time. This has no schedule yet — it's submit-on-demand only. First run takes a few extra minutes: the `kaggle-ingest-env` Docker image has to build, and the scale-to-zero compute cluster has to spin up a node. Successful submission prints a `studio_url` — open it in Azure ML Studio to watch logs, or run `az ml job stream --name <job-name>`.
+
+If deploying `infra/main.bicep` fails with `RoleAssignmentExists`, see the troubleshooting section in `infra/README.md`.

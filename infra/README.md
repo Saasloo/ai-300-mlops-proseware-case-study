@@ -23,6 +23,34 @@ az deployment sub create \
   --parameters secretsOfficerPrincipalId=$(az ad signed-in-user show --query id -o tsv)
 ```
 
+Grab the outputs the data ingestion pipeline needs (see root `README.md`) with:
+
+```
+az deployment sub show --name main --query "properties.outputs.{compute:computeClusterName.value, identity:ingestIdentityClientId.value}"
+```
+
+### Troubleshooting: `RoleAssignmentExists` on deploy
+
+If the deployment fails with `RoleAssignmentExists` and quotes a role assignment ID you don't recognize, it means an assignment for that exact (principal, role, scope) triple already exists under a *different* name than what Bicep computes today — typically left over from an earlier version of a `guid(...)` formula in one of the `infra/*.bicep` files. Retrying the deployment as-is won't fix this, since Bicep will keep computing the same (mismatched) name every time. Diagnose and fix:
+
+```
+# 1. find what's actually assigned at the resource in question
+az role assignment list --scope <resource-id> --query "[].{name:name, role:roleDefinitionName, principalId:principalId}" -o table
+
+# 2. confirm what today's Bicep wants to create instead, without applying anything
+az deployment sub what-if --location eastus2 --template-file infra/main.bicep \
+  --parameters secretsOfficerPrincipalId=$(az ad signed-in-user show --query id -o tsv)
+
+# 3. delete the stale assignment, then redeploy
+az role assignment delete --ids <full-resource-id-of-the-stale-assignment>
+```
+
+This is safe: the principal/role/scope being granted doesn't change, so the redeploy immediately recreates an equivalent assignment under the correct name — there's no meaningful access gap.
+
+### Note: Azure ML workspaces don't support soft-delete purge/list via CLI
+
+Unlike Key Vault (below), the `az ml` extension has no `list-deleted` or `recover` command, and the `Microsoft.MachineLearningServices/deletedWorkspaces` resource type isn't available in this subscription — listing/recovering a soft-deleted workspace is Azure Portal-only ("Recently deleted" view). The CLI only supports the permanent-delete side, via `az ml workspace delete --permanently-delete`, which maps to the SDK's `ml_client.workspaces.begin_delete(permanently_delete=True)`. If you ever hit a workspace name conflict from a soft-deleted workspace, purge it with that command (you need to already know its name — there's no CLI listing), then redeploy.
+
 ## Smoke tests
 
 After deploying, `infra/smoke-tests/` has scripts that confirm access to the deployed resources works end-to-end:
