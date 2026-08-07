@@ -2,7 +2,7 @@
 param location string
 
 @description('Base name used to derive the globally-unique machine learning workspace name.')
-param workspaceBaseName string = 'mlw-proseware-dev'
+param workspaceBaseName string = 'mlw-proseware-dev2'
 
 @description('Name of the storage account this workspace uses for default datastores.')
 param storageAccountName string
@@ -37,9 +37,13 @@ param computeClusterBaseName string = 'cc-proseware-dev'
 @description('VM size for the training compute cluster nodes.')
 param computeClusterVmSize string = 'Standard_DS2_v2'
 
+@description('Base name used to derive the managed identity that ingestion jobs run under.')
+param ingestIdentityBaseName string = 'id-proseware-ingest-dev'
+
 var workspaceName = take('${workspaceBaseName}-${uniqueString(resourceGroup().id)}', 32)
 var computeInstanceName = take('${computeInstanceBaseName}-${uniqueString(resourceGroup().id)}', 24)
 var computeClusterName = take('${computeClusterBaseName}-${uniqueString(resourceGroup().id)}', 24)
+var ingestIdentityName = take('${ingestIdentityBaseName}-${uniqueString(resourceGroup().id)}', 32)
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
   name: storageAccountName
@@ -150,8 +154,27 @@ resource computeCluster 'Microsoft.MachineLearningServices/workspaces/computes@2
   }
 }
 
+@description('User-assigned managed identity that ingestion jobs (e.g. the Kaggle data ingestion job) run under, so they can call back into the workspace control plane (register/check data assets) without interactive login.')
+resource ingestIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: ingestIdentityName
+  location: location
+}
+
+@description('Grants the ingestion identity AzureML Data Scientist on the workspace, so ingestion jobs can read/write data assets.')
+resource ingestIdentityRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(mlWorkspace.id, ingestIdentity.id, 'AzureMLDataScientist')
+  scope: mlWorkspace
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f6c7c914-8db3-469d-8ca1-694a8f32e121')
+    principalId: ingestIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 output mlWorkspaceName string = mlWorkspace.name
 output mlWorkspaceId string = mlWorkspace.id
 output mlWorkspacePrincipalId string = mlWorkspace.identity.principalId
 output computeInstanceName string = deployComputeInstance ? computeInstance.name : ''
 output computeClusterName string = computeCluster.name
+output ingestIdentityClientId string = ingestIdentity.properties.clientId
+output ingestIdentityResourceId string = ingestIdentity.id

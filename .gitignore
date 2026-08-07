@@ -29,3 +29,6 @@ target
 
 # Azure ML workspace config (subscription/resource identifiers, environment-specific)
 config.json
+
+# Python binaries
+__pycache__

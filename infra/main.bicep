@@ -72,3 +72,7 @@ module mlWorkspace 'mlworkspace.bicep' = {
     deployComputeInstance: deployComputeInstance
   }
 }
+
+output computeClusterName string = mlWorkspace.outputs.computeClusterName
+output ingestIdentityClientId string = mlWorkspace.outputs.ingestIdentityClientId
+output ingestIdentityResourceId string = mlWorkspace.outputs.ingestIdentityResourceId
