@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 
 from azure.ai.ml import MLClient, command
-from azure.ai.ml.entities import Environment, ManagedIdentityConfiguration
+from azure.ai.ml.entities import BuildContext, Environment, ManagedIdentityConfiguration
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from dotenv import load_dotenv
 
@@ -20,7 +20,7 @@ from proseware.ingestion.kaggle import DEFAULT_ASSET_NAME, DEFAULT_DATASET
 
 INGEST_SCRIPT_DIR = Path(__file__).parent
 ENVIRONMENT_NAME = "kaggle-ingest-env"
-ENVIRONMENT_VERSION = "1"
+ENVIRONMENT_VERSION = "2"  # bumped: switched from a conda-based env to a Dockerfile built with uv
 
 logger = logging.getLogger(__name__)
 
@@ -38,23 +38,7 @@ def get_or_create_environment(ml_client: MLClient) -> Environment:
     environment = Environment(
         name=ENVIRONMENT_NAME,
         version=ENVIRONMENT_VERSION,
-        image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04",
-        conda_file={
-            "name": ENVIRONMENT_NAME,
-            "channels": ["conda-forge"],
-            "dependencies": [
-                "python=3.13",
-                "pip",
-                {
-                    "pip": [
-                        "kagglehub",
-                        "pandas",
-                        "azure-ai-ml",
-                        "azure-identity",
-                    ]
-                },
-            ],
-        },
+        build=BuildContext(path=str(INGEST_SCRIPT_DIR)),
     )
     return ml_client.environments.create_or_update(environment)
 
