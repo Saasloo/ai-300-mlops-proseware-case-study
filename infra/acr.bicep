@@ -13,7 +13,11 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
     name: 'Basic'
   }
   properties: {
-    adminUserEnabled: false
+    // Identity-based ACR pulls (managed identity + AcrPull) for AmlCompute proved unreliable
+    // in practice - AggregatedUnauthorizedAccessError persisted even with correct RBAC on a
+    // freshly-provisioned resource group. Falling back to the admin user, which AML uses
+    // automatically via Key Vault-stored credentials.
+    adminUserEnabled: true
   }
 }
 

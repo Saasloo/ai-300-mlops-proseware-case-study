@@ -23,7 +23,7 @@ param computeInstanceBaseName string = 'ci-proseware-dev'
 param computeInstanceVmSize string = 'Standard_DS1_v2'
 
 @description('ISO8601 duration of inactivity after which the compute instance auto-shuts-down. Minimum PT15M, maximum P3D.')
-param computeInstanceIdleShutdown string = 'PT30M'
+param computeInstanceIdleShutdown string = 'PT15M'
 
 @description('AAD object ID of the user assigned as the personal owner of the compute instance (typically the signed-in developer).')
 param computeInstanceOwnerObjectId string
@@ -76,16 +76,12 @@ resource mlWorkspace 'Microsoft.MachineLearningServices/workspaces@2025-06-01' =
   }
 }
 
-@description('Grants the workspace identity Storage Blob Data Contributor on its storage account.')
-resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, mlWorkspace.id, 'StorageBlobDataContributor')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-    principalId: mlWorkspace.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// No explicit Storage Blob Data Contributor role assignment here: same reasoning as
+// the ACR AcrPull assignment above. When storageAccount is set on the workspace, the
+// AML resource provider auto-provisions Storage Blob Data Contributor (and Storage File
+// Data Privileged Contributor) for the workspace's system-assigned identity on that
+// storage account, under its own assignment name - an explicit assignment for the same
+// (principalId, roleDefinitionId, scope) tuple conflicts with it on deploy.
 
 @description('Grants the workspace identity Key Vault Secrets Officer on its key vault.')
 resource keyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -98,16 +94,12 @@ resource keyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04
   }
 }
 
-@description('Grants the workspace identity AcrPull on its container registry.')
-resource acrRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(containerRegistry.id, mlWorkspace.id, 'AcrPull')
-  scope: containerRegistry
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-    principalId: mlWorkspace.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// No explicit AcrPull role assignment here: when containerRegistry is set on the
+// workspace, the AML resource provider auto-provisions AcrPull for the workspace's
+// system-assigned identity on that registry. An explicit assignment for the same
+// (principalId, roleDefinitionId, scope) tuple conflicts with that implicit one on
+// deploy, since role assignments are unique by that tuple regardless of the
+// assignment's own name/GUID.
 
 @description('Personal notebook compute instance for interactive development. Billed hourly while running regardless of usage - stop it when not in use.')
 resource computeInstance 'Microsoft.MachineLearningServices/workspaces/computes@2025-06-01' = if (deployComputeInstance) {
@@ -138,6 +130,12 @@ resource computeCluster 'Microsoft.MachineLearningServices/workspaces/computes@2
   parent: mlWorkspace
   name: computeClusterName
   location: location
+  identity: {
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${ingestIdentity.id}': {}
+    }
+  }
   properties: {
     computeType: 'AmlCompute'
     properties: {
