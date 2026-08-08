@@ -25,9 +25,6 @@ param computeInstanceVmSize string = 'Standard_DS1_v2'
 @description('ISO8601 duration of inactivity after which the compute instance auto-shuts-down. Minimum PT15M, maximum P3D.')
 param computeInstanceIdleShutdown string = 'PT15M'
 
-@description('AAD object ID of the user assigned as the personal owner of the compute instance (typically the signed-in developer).')
-param computeInstanceOwnerObjectId string
-
 @description('Whether to deploy the compute instance. Set to false to stand up the workspace without incurring compute-instance run time.')
 param deployComputeInstance bool = true
 
@@ -110,16 +107,10 @@ resource computeInstance 'Microsoft.MachineLearningServices/workspaces/computes@
     computeType: 'ComputeInstance'
     properties: {
       vmSize: computeInstanceVmSize
-      applicationSharingPolicy: 'Personal'
+      applicationSharingPolicy: 'Shared'
       idleTimeBeforeShutdown: computeInstanceIdleShutdown
       sshSettings: {
         sshPublicAccess: 'Disabled'
-      }
-      personalComputeInstanceSettings: {
-        assignedUser: {
-          objectId: computeInstanceOwnerObjectId
-          tenantId: tenant().tenantId
-        }
       }
     }
   }

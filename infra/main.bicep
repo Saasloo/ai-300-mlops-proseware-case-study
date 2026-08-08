@@ -22,6 +22,7 @@ module storage 'storage.bicep' = {
   scope: rg
   params: {
     location: location
+    dataReaderPrincipalId: secretsOfficerPrincipalId
   }
 }
 
@@ -68,7 +69,6 @@ module mlWorkspace 'mlworkspace.bicep' = {
     keyVaultName: keyVault.outputs.keyVaultName
     appInsightsId: appInsights.outputs.appInsightsId
     containerRegistryName: acr.outputs.acrName
-    computeInstanceOwnerObjectId: secretsOfficerPrincipalId
     deployComputeInstance: deployComputeInstance
   }
 }
